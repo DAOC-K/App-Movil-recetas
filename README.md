@@ -3,10 +3,11 @@
 Aplicación móvil diseñada para la gestión de recetas de cocina. Permite a los usuarios crear una comunidad culinaria, publicar platos, interactuar y optimizar sus idas al supermercado automatizando las listas de ingredientes.
 
 ##  Características Principales
-* **Autenticación:** Sistema seguro de inicio de sesión y registro de usuarios.
-* **Exploración de Recetas:** Interfaz gráfica para visualizar platillos con fotografías, descripción detallada e instrucciones paso a paso.
-* **Interacción Social:** Sistema de comentarios integrado por cada receta y capacidad para que los usuarios suban fotos de sus resultados.
-* **Asistente de Compras:** Módulo que extrae los ingredientes de las recetas seleccionadas y genera una lista de compras interactiva.
+## 🚀 Características Principales y Diferenciadores
+* **Generador "Chef IA":** Integración con Inteligencia Artificial para sugerir recetas instantáneas basadas en los ingredientes exactos que el usuario tiene disponibles en casa, evitando el desperdicio de alimentos.
+* **Modo Supermercado Offline:** La lista de compras cuenta con persistencia de datos local (caché/almacenamiento interno). El usuario puede tachar sus ingredientes en el supermercado sin depender de una conexión a internet, sincronizándose con la base de datos al recuperar la señal.
+* **Exploración e Interacción:** Feed dinámico de recetas con sistema de comentarios integrado y carga de fotografías reales por parte de la comunidad.
+* **Autenticación Segura:** Sistema de inicio de sesión y registro de usuarios para mantener el historial de recetas y listas de compras personalizadas.
 
 ##  Stack Tecnológico Definido
 * **Frontend (App Móvil):** React Native (Permite compilar para Android y iOS desde una misma base de código).
