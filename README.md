@@ -21,3 +21,9 @@ El sistema se sostiene sobre una arquitectura relacional sólida con las siguien
 2. `Recetas` (Información principal del plato y URL de la imagen)
 3. `Ingredientes` (Cantidades exactas vinculadas a cada receta)
 4. `Comentarios` (Registro de interacciones vinculando al usuario y la receta)
+
+
+## 🎨 Diseños y Mockups (UI/UX)
+Los diseños iniciales y la experiencia de usuario fueron creados en Figma. 
+[🔗 Haz clic aquí para ver los mockups interactivos](https://www.figma.com/make/B8pM3vUeaqL8xzBWVSrKpW/Aplicaci%C3%B3n-de-recetas-m%C3%B3viles?t=EFOURGrKjQYYZjJg-1&preview-route=%2Fapp)
+
