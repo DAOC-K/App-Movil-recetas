@@ -107,7 +107,7 @@ def subir_foto_perfil(user_id: int, file: UploadFile = File(...)):
             buffer.write(file.file.read())
 
         # URL PÚBLICA (Usamos una variable de entorno para que se adapte automáticamente)
-        base_url = os.environ.get('API_URL', 'http://192.168.1.1:8000')
+        base_url = os.environ.get('API_URL', 'https://app-movil-recetas.onrender.com')
         url_foto_publica = f"{base_url}/static/perfiles/{nombre_archivo}"
         return {"mensaje": "ok", "url_foto": url_foto_publica}
     except Exception as e:
@@ -128,7 +128,7 @@ def subir_foto_resena(receta_id: int, user_id: int, file: UploadFile = File(...)
             buffer.write(file.file.read())
 
         # URL PÚBLICA DE LA FOTO DE RESEÑA
-        base_url = os.environ.get('API_URL', 'http://192.168.1.1:8000')
+        base_url = os.environ.get('API_URL', 'https://app-movil-recetas.onrender.com')
         url_foto_publica = f"{base_url}/static/resenas/{nombre_archivo}"
         return {"mensaje": "ok", "url_foto": url_foto_publica}
     except Exception as e:
