@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+mysql-connector-python
+bcrypt
+pydantic
+python-multipart
+google-genai
