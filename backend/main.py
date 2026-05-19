@@ -24,19 +24,17 @@ app.add_middleware(
 )
 
 # --- CONFIGURACIÓN IA GEMINI ---
-# La llave ahora está protegida. Render la inyectará desde la nube.
 API_KEY = os.environ.get('GEMINI_API_KEY') 
 client = genai.Client(api_key=API_KEY)
 
 # --- CONFIGURACIÓN PARA FOTOS ---
-# 1. Foto de Perfil
 CARPETA_PERFILES = "uploads/perfiles"
 os.makedirs(CARPETA_PERFILES, exist_ok=True)
-# 2. Fotos de Reseñas (NUEVO)
+
 CARPETA_RESENAS = "uploads/resenas"
 os.makedirs(CARPETA_RESENAS, exist_ok=True)
 
-# Montamos la carpeta global static (puedes acceder a ambas)
+# Montamos la carpeta global static
 app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 # --- MODELOS ---
@@ -52,17 +50,21 @@ class UsuarioLogin(BaseModel):
     email: str
     password: str
 
-# MODELO ACTUALIZADO (NUEVO CAMPO)
+# 🔥 NUEVO MODELO: Para recibir los datos de actualización desde la app
+class UsuarioActualizar(BaseModel):
+    nombre: str = None
+    usuario: str = None
+    email: str = None
+
 class Resena(BaseModel):
     receta_id: int
     usuario_id: int 
     estrellas: int
     comentario: str
-    image_url: str = None # Campo opcional
+    image_url: str = None 
+    username: str = None # Añadido por compatibilidad con la app
 
-# 🔥 ¡MAGIA DE LA NUBE APLICADA AQUÍ! 🔥
 def obtener_conexion():
-    # Intenta leer credenciales de la nube (Render). Si no existen, usa tus datos de XAMPP.
     return mysql.connector.connect(
         host=os.environ.get('DB_HOST', 'localhost'), 
         database=os.environ.get('DB_NAME', 'cook_and_share'), 
@@ -95,6 +97,30 @@ def login(u: UsuarioLogin):
     finally: 
         if 'conn' in locals() and conn.is_connected(): conn.close()
 
+# 🔥 NUEVA RUTA PRO: Para editar los datos y guardar el apodo
+@app.put("/usuario/actualizar/{user_id}")
+def actualizar_usuario(user_id: int, u: UsuarioActualizar):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor()
+        
+        # El backend acepta 'nombre' o 'usuario' indistintamente
+        nombre_final = u.nombre if u.nombre else u.usuario
+        
+        if not nombre_final or not u.email:
+            raise HTTPException(status_code=400, detail="Faltan datos (nombre o email)")
+
+        cursor.execute(
+            "UPDATE users SET username = %s, email = %s WHERE id = %s", 
+            (nombre_final, u.email, user_id)
+        )
+        conn.commit()
+        return {"mensaje": "ok"}
+    except Exception as e: 
+        raise HTTPException(status_code=400, detail=str(e))
+    finally: 
+        if 'conn' in locals() and conn.is_connected(): conn.close()
+
 # --- RUTA PARA SUBIR FOTO DE PERFIL ---
 @app.post("/usuario/{user_id}/subir-foto")
 def subir_foto_perfil(user_id: int, file: UploadFile = File(...)):
@@ -106,14 +132,13 @@ def subir_foto_perfil(user_id: int, file: UploadFile = File(...)):
         with open(ruta_completa, "wb") as buffer:
             buffer.write(file.file.read())
 
-        # URL PÚBLICA (Usamos una variable de entorno para que se adapte automáticamente)
         base_url = os.environ.get('API_URL', 'https://app-movil-recetas.onrender.com')
         url_foto_publica = f"{base_url}/static/perfiles/{nombre_archivo}"
         return {"mensaje": "ok", "url_foto": url_foto_publica}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- NUEVA RUTA PARA SUBIR FOTO DE RESEÑA (Punto 1) ---
+# --- RUTA PARA SUBIR FOTO DE RESEÑA ---
 @app.post("/receta/{receta_id}/usuario/{user_id}/subir-foto-resena")
 def subir_foto_resena(receta_id: int, user_id: int, file: UploadFile = File(...)):
     try:
@@ -127,14 +152,13 @@ def subir_foto_resena(receta_id: int, user_id: int, file: UploadFile = File(...)
         with open(ruta_completa, "wb") as buffer:
             buffer.write(file.file.read())
 
-        # URL PÚBLICA DE LA FOTO DE RESEÑA
         base_url = os.environ.get('API_URL', 'https://app-movil-recetas.onrender.com')
         url_foto_publica = f"{base_url}/static/resenas/{nombre_archivo}"
         return {"mensaje": "ok", "url_foto": url_foto_publica}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- RUTAS DE RECETAS (EXTRACCIÓN LIMPIA) ---
+# --- RUTAS DE RECETAS ---
 @app.get("/recetas/populares")
 def recetas_populares():
     try:
@@ -220,12 +244,11 @@ def chef_ia(p: PeticionChef):
             ]
         }
 
-# --- RUTA PARA ENVIAR RESEÑA ACTUALIZADA (Punto 1) ---
+# --- RUTAS DE RESEÑAS ---
 @app.post("/enviar-resena")
 def resena(r: Resena):
     try:
         conn = obtener_conexion(); cursor = conn.cursor()
-        # Modificamos la query para incluir image_url
         query = "INSERT INTO resenas (receta_id, usuario_id, estrellas, comentario, image_url) VALUES (%s, %s, %s, %s, %s)"
         cursor.execute(query, (r.receta_id, r.usuario_id, r.estrellas, r.comentario, r.image_url))
         conn.commit(); return {"status": "success"}
@@ -237,7 +260,6 @@ def resena(r: Resena):
 def obtener_resenas(receta_id: int):
     try:
         conn = obtener_conexion(); cursor = conn.cursor(dictionary=True)
-        # Obtenemos reseñas e información del usuario que la dejó
         query = """
             SELECT r.*, u.username 
             FROM resenas r 
@@ -265,7 +287,7 @@ def obtener_estadisticas_usuario(user_id: int):
         print(f"Error stats: {e}")
         return {"creadas": 0, "hechas": 0}
 
-# FASE 5 (CREACIÓN DE RECETAS MANUALES) - Sin cambios
+# --- CREACIÓN DE RECETAS MANUALES ---
 class RecetaManual(BaseModel):
     titulo: str
     tiempo: str
