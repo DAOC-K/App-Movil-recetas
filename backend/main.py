@@ -50,7 +50,13 @@ class UsuarioLogin(BaseModel):
     email: str
     password: str
 
-# 🔥 NUEVO MODELO: Para recibir los datos de actualización desde la app
+# 🔥 NUEVO MODELO: Para restablecer la contraseña
+class RestablecerPassword(BaseModel):
+    email: str
+    nombre: str
+    nueva_password: str
+
+# Modelo para recibir los datos de actualización desde la app
 class UsuarioActualizar(BaseModel):
     nombre: str = None
     usuario: str = None
@@ -62,7 +68,7 @@ class Resena(BaseModel):
     estrellas: int
     comentario: str
     image_url: str = None 
-    username: str = None # Añadido por compatibilidad con la app
+    username: str = None 
 
 def obtener_conexion():
     return mysql.connector.connect(
@@ -92,12 +98,37 @@ def login(u: UsuarioLogin):
         cursor.execute("SELECT * FROM users WHERE email = %s", (u.email,))
         user = cursor.fetchone()
         if user and bcrypt.checkpw(u.password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+            # Devuelve el nombre real/apodo que está guardado en la base de datos
             return {"id": user['id'], "usuario": user['username'], "email": user['email']}
         raise HTTPException(status_code=401)
     finally: 
         if 'conn' in locals() and conn.is_connected(): conn.close()
 
-# 🔥 NUEVA RUTA PRO: Para editar los datos y guardar el apodo
+# 🔥 NUEVA RUTA: Restablecer Contraseña (Validación sin correo)
+@app.post("/restablecer-password")
+def restablecer_password(r: RestablecerPassword):
+    try:
+        conn = obtener_conexion()
+        cursor = conn.cursor(dictionary=True)
+        
+        # Buscamos al usuario por su email y su nombre/apodo registrado
+        cursor.execute("SELECT id FROM users WHERE email = %s AND username = %s", (r.email.lower(), r.nombre))
+        usuario = cursor.fetchone()
+        
+        if usuario:
+            # Si coinciden, encriptamos la nueva contraseña y la guardamos
+            hash_pw = bcrypt.hashpw(r.nueva_password.encode('utf-8'), bcrypt.gensalt())
+            cursor.execute("UPDATE users SET password_hash = %s WHERE id = %s", (hash_pw.decode('utf-8'), usuario['id']))
+            conn.commit()
+            return {"mensaje": "ok"}
+        else:
+            raise HTTPException(status_code=404, detail="El correo o el nombre no coinciden con nuestros registros.")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        if 'conn' in locals() and conn.is_connected(): conn.close()
+
+# Ruta para editar los datos y guardar el apodo
 @app.put("/usuario/actualizar/{user_id}")
 def actualizar_usuario(user_id: int, u: UsuarioActualizar):
     try:
